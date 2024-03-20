@@ -1,8 +1,6 @@
 package br.eti.souza.configuration;
 
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -37,6 +35,60 @@ public class Configuration {
     }
 
     /**
+     * Retorna a configuração de acordo com o nome, usando como properties interno [name].properties.
+     * @param name Nome da configuração.
+     * @return Configuração de acordo com o nome.
+     */
+    public static Configuration getInstance(String name) {
+        if (!Configuration.CONFIGURATIONS.containsKey(name)) {
+            Configuration.CONFIGURATIONS.put(name, new Configuration(name + ".properties"));
+        }
+        return Configuration.CONFIGURATIONS.get(name);
+    }
+
+    /**
+     * Retorna a configuração padrão que tem como properties interno souza.properties.
+     * Equivalente a Configuration.getInstance("souza").
+     * @return Configuração padrão.
+     */
+    public static Configuration getInstance() {
+        return Configuration.getInstance("souza");
+    }
+
+    /**
+     * Retorna valor da configuração, ou nulo se não achar.
+     * Ordem de procura:
+     * 1- Variavel de sistema: System.getenv(key).
+     * 2- Propriedade de execução: System.getProperty(key).
+     * 3- Arquivo de propriedade relacionado a esta configuração: this.properties.getProperty(key).
+     * @param key Chave da configuração.
+     * @return Valor da configuração ou nulo se não achar.
+     */
+    public String get(String key) {
+        if (key == null || key.isBlank()) {
+            return null;
+        }
+        key = key.trim();
+        try {
+            var value = System.getenv(key);
+            if (value != null && !value.isBlank()) {
+                return value.trim();
+            }
+            value = System.getProperty(key);
+            if (value != null && !value.isBlank()) {
+                return value.trim();
+            }
+            value = this.properties.getProperty(key);
+            if (value != null && !value.isBlank()) {
+                return value.trim();
+            }
+        } catch (SecurityException e) {
+            Configuration.LOGGER.log(Level.WARNING, e.getMessage(), e);
+        }
+        return null;
+    }
+
+    /**
      * Retorna valor da configuração, ou o valor padrão se não achar.
      * Ordem de procura:
      * 1- Variavel de sistema: System.getenv(key).
@@ -44,7 +96,7 @@ public class Configuration {
      * 3- Arquivo de propriedade relacionado a esta configuração: this.properties.getProperty(key).
      * @param key Chave da configuração.
      * @param defaultValue Valor padrão.
-     * @return Valor da configuração ou nulo se não achar.
+     * @return Valor da configuração ou o valor padrão se não achar.
      */
     public String get(String key, String defaultValue) {
         var value = this.get(key);
@@ -59,79 +111,120 @@ public class Configuration {
      * 3- Arquivo de propriedade relacionado a esta configuração: this.properties.getProperty(key).
      * @param key Chave da configuração.
      * @param defaultValue Valor padrão.
-     * @return Valor da configuração ou nulo se não achar.
+     * @return Valor da configuração ou o valor padrão se não achar.
      */
-    public Integer getAsInteger(String key, Integer defaultValue) {
-        var value = this.getAsInteger(key);
-        return value != null ? value : defaultValue;
+    public char get(String key, char defaultValue) {
+        var value = this.get(key);
+        return value != null ? value.charAt(0) : defaultValue;
     }
 
     /**
-     * Retorna valor da configuração, ou nulo se não achar.
+     * Retorna valor da configuração, ou o valor padrão se não achar.
      * Ordem de procura:
      * 1- Variavel de sistema: System.getenv(key).
      * 2- Propriedade de execução: System.getProperty(key).
      * 3- Arquivo de propriedade relacionado a esta configuração: this.properties.getProperty(key).
      * @param key Chave da configuração.
-     * @return Valor da configuração ou nulo se não achar.
+     * @param defaultValue Valor padrão.
+     * @return Valor da configuração ou o valor padrão se não achar.
      */
-    public String get(String key) {
-        try {
-            if (key != null && !key.isBlank()) {
-                key = key.trim();
-                var value = System.getenv(key);
-                if (value == null || value.isBlank()) {
-                    value = System.getProperty(key);
-                    if (value == null || value.isBlank()) {
-                        value = this.properties.getProperty(key);
-                    }
-                }
-                if (value != null && !value.isBlank()) {
-                    return value.trim();
-                }
-            }
-        } catch (SecurityException | IllegalArgumentException | NullPointerException e) {
-            Configuration.LOGGER.log(Level.WARNING, e.getMessage(), e);
-        }
-        return null;
-    }
-
-    /**
-     * Retorna valor como numero inteiro da configuração, ou nulo se não achar.
-     * Ordem de procura:
-     * 1- Variavel de sistema: System.getenv(key).
-     * 2- Propriedade de execução: System.getProperty(key).
-     * 3- Arquivo de propriedade relacionado a esta configuração: this.properties.getProperty(key).
-     * @param key Chave da configuração.
-     * @return Valor da configuração ou nulo se não achar.
-     */
-    public Integer getAsInteger(String key) {
+    public int get(String key, int defaultValue) {
         var value = this.get(key);
         if (value != null) {
-            return Integer.valueOf(value);
-        } else {
-            return null;
+            try {
+                return Integer.parseInt(value);
+            } catch (NumberFormatException e) {
+                return defaultValue;
+            }
         }
+        return defaultValue;
     }
 
     /**
-     * Retorna a configuração padrão que tem como properties interno souza.properties.
-     * Equivalente a Configuration.getInstance("souza").
-     * @return Configuração padrão.
+     * Retorna valor da configuração, ou o valor padrão se não achar.
+     * Ordem de procura:
+     * 1- Variavel de sistema: System.getenv(key).
+     * 2- Propriedade de execução: System.getProperty(key).
+     * 3- Arquivo de propriedade relacionado a esta configuração: this.properties.getProperty(key).
+     * @param key Chave da configuração.
+     * @param defaultValue Valor padrão.
+     * @return Valor da configuração ou o valor padrão se não achar.
      */
-    public static Configuration getInstance() {
-        return Configuration.getInstance("souza");
+    public long get(String key, long defaultValue) {
+        var value = this.get(key);
+        if (value != null) {
+            try {
+                return Long.parseLong(value);
+            } catch (NumberFormatException e) {
+                return defaultValue;
+            }
+        }
+        return defaultValue;
     }
 
     /**
-     * Retorna a configuração de acordo com o nome, usando como properties interno [name].properties.
-     * @param name Nome da configuração.
-     * @return Configuração de acordo com o nome.
+     * Retorna valor da configuração, ou o valor padrão se não achar.
+     * Ordem de procura:
+     * 1- Variavel de sistema: System.getenv(key).
+     * 2- Propriedade de execução: System.getProperty(key).
+     * 3- Arquivo de propriedade relacionado a esta configuração: this.properties.getProperty(key).
+     * @param key Chave da configuração.
+     * @param defaultValue Valor padrão.
+     * @return Valor da configuração ou o valor padrão se não achar.
      */
-    public static Configuration getInstance(String name) {
-        if (!Configuration.CONFIGURATIONS.containsKey(name)) {
-            Configuration.CONFIGURATIONS.put(name, new Configuration(name + ".properties"));
+    public float get(String key, float defaultValue) {
+        var value = this.get(key);
+        if (value != null) {
+            try {
+                return Float.parseFloat(value);
+            } catch (NumberFormatException e) {
+                return defaultValue;
+            }
         }
-        return Configuration.CONFIGURATIONS.get(name);
+        return defaultValue;
+    }
+
+    /**
+     * Retorna valor da configuração, ou o valor padrão se não achar.
+     * Ordem de procura:
+     * 1- Variavel de sistema: System.getenv(key).
+     * 2- Propriedade de execução: System.getProperty(key).
+     * 3- Arquivo de propriedade relacionado a esta configuração: this.properties.getProperty(key).
+     * @param key Chave da configuração.
+     * @param defaultValue Valor padrão.
+     * @return Valor da configuração ou o valor padrão se não achar.
+     */
+    public double get(String key, double defaultValue) {
+        var value = this.get(key);
+        if (value != null) {
+            try {
+                return Double.parseDouble(value);
+            } catch (NumberFormatException e) {
+                return defaultValue;
+            }
+        }
+        return defaultValue;
+    }
+
+    /**
+     * Retorna valor da configuração, ou o valor padrão se não achar.
+     * Ordem de procura:
+     * 1- Variavel de sistema: System.getenv(key).
+     * 2- Propriedade de execução: System.getProperty(key).
+     * 3- Arquivo de propriedade relacionado a esta configuração: this.properties.getProperty(key).
+     * @param key Chave da configuração.
+     * @param defaultValue Valor padrão.
+     * @return Valor da configuração ou o valor padrão se não achar.
+     */
+    public boolean get(String key, boolean defaultValue) {
+        var value = this.get(key);
+        if (value != null) {
+            try {
+                return Boolean.parseBoolean(value);
+            } catch (NumberFormatException e) {
+                return defaultValue;
+            }
+        }
+        return defaultValue;
     }
 }
