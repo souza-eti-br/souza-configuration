@@ -26,10 +26,10 @@ public class Configuration {
      * Construtor que carrega as configurações de um arquivo de propriedades.
      * @param path Path do arquivo de configurações.
      */
-    private Configuration(Path path) {
+    private Configuration(String name) {
         try {
-            if (path != null && path.toFile().isFile()) {
-                this.properties.load(new FileInputStream(path.toFile()));
+            if (name != null && !name.isBlank()) {
+                this.properties.load(this.getClass().getClassLoader().getResourceAsStream(name));
             }
         } catch (UnsupportedOperationException | SecurityException | IllegalArgumentException | NullPointerException | IOException e) {
             Configuration.LOGGER.log(Level.WARNING, e.getMessage(), e);
@@ -130,7 +130,7 @@ public class Configuration {
      */
     public static Configuration getInstance(String name) {
         if (!Configuration.CONFIGURATIONS.containsKey(name)) {
-            Configuration.CONFIGURATIONS.put(name, new Configuration(Path.of(name + ".properties")));
+            Configuration.CONFIGURATIONS.put(name, new Configuration(name + ".properties"));
         }
         return Configuration.CONFIGURATIONS.get(name);
     }
